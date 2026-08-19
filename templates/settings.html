@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Settings — Expense Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="/static/interactions.js"></script>
+  <link rel="stylesheet" href="/static/themes.css">
+  <script>document.documentElement.setAttribute('data-theme',(localStorage.getItem('em-palette')||'github')+'-'+(localStorage.getItem('em-mode')||'dark'));</script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      min-height: 100vh;
+      padding-bottom: 40px;
+    }
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      background: var(--surface); flex-wrap: wrap; gap: 8px;
+    }
+    .nav-logo { color: var(--accent); text-decoration: none; font-family: var(--font-display); font-weight: 800; font-size: 1.2rem; }
+    .nav-links { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.85rem; }
+    .nav-links a:hover, .nav-links a.active { color: var(--accent); }
+    .nav-logout { color: var(--danger) !important; }
+    .container { max-width: 800px; margin: 0 auto; padding: 24px 16px; }
+    .page-title { font-family: var(--font-display); font-weight: 700; font-size: 1.5rem; color: var(--text); margin-bottom: 24px; }
+
+    .section {
+      background: var(--surface); border-radius: 12px; padding: 20px 24px;
+      margin-bottom: 20px; border: 1px solid var(--border);
+    }
+    .section-title {
+      font-family: var(--font-display); font-weight: 600; font-size: 1.1rem;
+      color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+    }
+    .section-desc { font-size: 0.85rem; color: var(--muted); margin-bottom: 16px; }
+
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 0.8rem; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; font-weight: 500; }
+    .field input, .field select, .field textarea {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--bg); color: var(--text); font-family: var(--font-mono); font-size: 0.9rem;
+    }
+    .field textarea { min-height: 120px; resize: vertical; font-size: 0.8rem; }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
+
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-label { font-size: 0.9rem; }
+    .toggle-desc { font-size: 0.8rem; color: var(--muted); }
+
+    .toggle-switch {
+      position: relative; width: 44px; height: 24px; cursor: pointer;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0; background: var(--border); border-radius: 24px; transition: 0.2s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute; width: 18px; height: 18px; left: 3px; bottom: 3px;
+      background: var(--text); border-radius: 50%; transition: 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+    .inline-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+    .inline-row .field { flex: 1; min-width: 150px; }
+
+    .btn {
+      padding: 10px 18px; border: none; border-radius: 8px; font-size: 0.85rem;
+      cursor: pointer; font-weight: 500; font-family: var(--font-mono);
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+    .mapping-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .mapping-table th {
+      text-align: left; font-size: 0.75rem; color: var(--muted); text-transform: uppercase;
+      padding: 6px 8px; border-bottom: 1px solid var(--border);
+    }
+    .mapping-table td { padding: 6px 8px; }
+    .mapping-table input, .mapping-table select {
+      width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px;
+      background: var(--bg); color: var(--text); font-size: 0.85rem;
+    }
+    .mapping-table select option {
+      background: var(--surface); color: var(--text);
+    }
+    .mapping-table .remove-btn {
+      background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.1rem;
+    }
+
+    .webhook-url {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 12px; font-size: 0.85rem; color: var(--muted);
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      word-break: break-all;
+    }
+    .webhook-url code { color: var(--text); flex: 1; }
+
+    .collapsible-adv { border-top: 1px solid var(--border); margin-top: 16px; padding-top: 12px; }
+    .collapsible-adv-header {
+      cursor: pointer; font-size: 0.85rem; color: var(--muted);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .collapsible-adv-header:hover { color: var(--text); }
+    .collapsible-adv-body { display: none; margin-top: 12px; }
+    .collapsible-adv.open .collapsible-adv-body { display: block; }
+    .collapsible-adv.open .adv-arrow { transform: rotate(90deg); }
+    .adv-arrow { transition: transform 0.2s; }
+
+    .guide-box {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      padding: 16px; margin-top: 12px; font-size: 0.8rem; line-height: 1.6; color: var(--muted);
+    }
+    .guide-box ol { padding-left: 20px; }
+    .guide-box li { margin-bottom: 8px; }
+    .guide-box .meta-prompt {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+      padding: 12px; margin: 8px 0; font-style: italic; white-space: pre-wrap;
+    }
+
+    .test-result {
+      margin-top: 12px; padding: 12px; border-radius: 8px;
+      font-size: 0.85rem; display: none;
+    }
+    .test-result.success { display: block; background: color-mix(in srgb, var(--success) 15%, var(--bg)); border: 1px solid var(--success); }
+    .test-result.error { display: block; background: color-mix(in srgb, var(--danger) 15%, var(--bg)); border: 1px solid var(--danger); }
+
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .status-dot.on { background: var(--success); }
+    .status-dot.off { background: var(--danger); }
+
+    @media (max-width: 600px) {
+      .container { padding: 16px 12px; }
+      .section { padding: 16px; }
+      .inline-row { flex-direction: column; }
+      .inline-row .field { min-width: 100%; }
+    }
+
+    /* Section jump-nav — this page stacks 7 distinct config sections in one
+       scroll (LLM, n8n, mapping, webhook, prompt, plan, history). Doesn't
+       change that structure, but gives Hick's/Miller's Law a visible chunked
+       index instead of relying purely on scroll position + memory. */
+    .section-nav {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      margin-bottom: 20px; padding: 10px 0 14px; border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; background: var(--bg); z-index: 5;
+    }
+    .section-nav a {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 50px;
+      color: var(--muted); font-size: 0.72rem; text-decoration: none;
+      padding: 6px 14px; text-transform: uppercase; letter-spacing: 0.5px;
+      transition: all 0.15s;
+    }
+    .section-nav a:hover { border-color: var(--accent); color: var(--text); }
+    .section-nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    /* So a jump-nav click doesn't land the target section's heading right
+       under the sticky nav bar above. */
+    .section { scroll-margin-top: 60px; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">Expense Manager</a>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/analytics">Analytics</a>
+    <a href="/manage">Manage</a>
+    <a href="/accounts">Accounts</a>
+    <a href="/plan">Plan</a>
+    <a href="/settings" class="active">Settings</a>
+    <a href="/logout" class="nav-logout" onclick="event.preventDefault();fetch('/logout',{method:'POST',headers:{'X-CSRFToken':document.querySelector('meta[name=csrf-token]').content}}).then(()=>location.href='/login')">Log Out</a>
+    <button class="theme-toggle" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme"></button>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="page-title">Settings</div>
+
+  <nav class="section-nav" aria-label="Jump to section">
+    <a href="#sec-llm">LLM</a>
+    <a href="#sec-n8n">n8n</a>
+    <a href="#sec-mapping">Mapping</a>
+    <a href="#sec-webhook">Webhook</a>
+    <a href="#sec-prompt">Prompt</a>
+    <a href="#sec-plan">Plan</a>
+    <a href="#sec-history">History</a>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- LLM CONFIGURATION                                                      -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="section" id="sec-llm">
+    <div class="section-title">
+      <span class="status-dot {{ 'on' if config.enabled and config.llm_url else 'off' }}"></span>
+      LLM Configuration
+    </div>
+    <div class="section-desc">Connect a local LLM to automatically parse bank transaction emails into expense entries.</div>
+
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">Enable LLM Parsing</div>
+        <div class="toggle-desc">Required for paste mode and email automation</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="cfg-enabled" {{ 'checked' if config.enabled }}>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label>LLM Endpoint URL</label>
+      <input type="url" id="cfg-llm-url" value="{{ config.llm_url or '' }}" placeholder="http://192.168.1.31:8080">
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveConfig(this)">Save</button>
+      <button class="btn btn-outline" onclick="testLLM(this)">Test LLM Connection</button>
+    </div>
+    <div class="test-result" id="llm-test-result"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- EMAIL AUTOMATION (n8n)                                                  -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="section" id="sec-n8n">
+    <div class="section-title">Email Automation (n8n)</div>
+    <div class="section-desc">Automatically parse bank transaction emails using <strong>n8n</strong> — a free, self-hosted automation tool that connects your email inbox to this app.</div>
+
+    <div class="guide-box">
+      <p><strong>How it works:</strong></p>
+      <p style="margin-top:8px;">Bank sends email → Your inbox → n8n detects it → n8n sends it to this app → LLM parses it → Draft appears for review</p>
+    </div>
+
+    <div class="collapsible-adv open" id="n8n-guide" style="border-top:none; margin-top:16px; padding-top:0;">
+      <div class="collapsible-adv-header" onclick="this.parentElement.classList.toggle('open')">
+        <span class="adv-arrow">&#9654;</span> <strong>Setup Guide</strong>
+      </div>
+      <div class="collapsible-adv-body">
+        <div class="guide-box">
+          <ol>
+            <li>
+              <strong>Install n8n</strong><br>
+              <p style="margin:4px 0;">Option A — Quick start:</p>
+              <div class="meta-prompt" style="font-style:normal;">docker run -d --name n8n -p 5678:5678 -v n8n_data:/home/node/.n8n n8nio/n8n</div>
+              <p style="margin:4px 0;">Option B — Docker Compose (recommended):</p>
+              <div class="meta-prompt" style="font-style:normal;">services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    environment:
+      - N8N_SECURE_COOKIE=false
+    restart: unless-stopped
+
+volumes:
+  n8n_data:</div>
+              <p style="margin:4px 0;">Then open <code>http://localhost:5678</code> and create an account.</p>
+            </li>
+            <li>
+              <strong>Download the workflow template</strong><br>
+              <a href="/download/n8n-workflow" class="btn btn-outline" style="display:inline-block; margin:8px 0; font-size:0.8rem; padding:6px 12px;">Download n8n Workflow Template</a>
+            </li>
+            <li>
+              <strong>Import into n8n</strong><br>
+              In n8n: click <strong>+ Add Workflow</strong> → <strong>Import from File</strong> → select the downloaded JSON file.
+            </li>
+            <li>
+              <strong>Configure Node 1: Email Trigger</strong><br>
+              Click the "Email Trigger (IMAP)" node → Add credentials:
+              <table style="margin:8px 0; font-size:0.8rem; border-collapse:collapse;">
+                <tr><td style="padding:4px 12px 4px 0; color:var(--text);"><strong>Gmail</strong></td><td style="padding:4px 0;">imap.gmail.com : 993 (SSL) + App Password</td></tr>
+                <tr><td style="padding:4px 12px 4px 0; color:var(--text);"><strong>Outlook</strong></td><td style="padding:4px 0;">outlook.office365.com : 993 (SSL) + App Password</td></tr>
+                <tr><td style="padding:4px 12px 4px 0; color:var(--text);"><strong>Yahoo</strong></td><td style="padding:4px 0;">imap.mail.yahoo.com : 993 (SSL) + App Password</td></tr>
+                <tr><td style="padding:4px 12px 4px 0; color:var(--text);"><strong>Protonmail</strong></td><td style="padding:4px 0;">127.0.0.1 : 1143 (STARTTLS) via Protonmail Bridge</td></tr>
+              </table>
+            </li>
+            <li>
+              <strong>Configure Node 2: Filter Bank Emails</strong><br>
+              Replace <code>REPLACE_WITH_BANK_SENDER_EMAIL</code> with your bank's alert email address (e.g., <code>alerts@hdfcbank.net</code>).
+            </li>
+            <li>
+              <strong>Configure Node 3: Send to Expense Manager</strong><br>
+              Replace these values (copy from the Webhook section below):
+              <ul style="margin-top:4px;">
+                <li><code>REPLACE_WITH_APP_URL</code> → your app URL (e.g., <code>https://expenses.yourdomain.com</code>)</li>
+                <li><code>REPLACE_WITH_API_KEY</code> → your API key</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Activate the workflow</strong><br>
+              Toggle the switch in the top-right of the n8n workflow editor. Done!
+            </li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- ACCOUNT MAPPING                                                        -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="section" id="sec-mapping">
+    <div class="section-title">Account Mapping</div>
+    <div class="section-desc">Map identifiers in your bank emails to your Expense Manager accounts.</div>
+
+    <table class="mapping-table" id="mapping-table">
+      <thead>
+        <tr>
+          <th>Email Identifier</th>
+          <th>Maps To Account</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="mapping-body">
+        {% if config.account_mapping %}
+        {% for key, val in config.account_mapping.items() %}
+        <tr>
+          <td><input type="text" class="mapping-key" value="{{ key }}" placeholder='e.g., "account 7621"'></td>
+          <td>
+            <select class="mapping-val">
+              {% for acct in accounts %}
+              <option value="{{ acct.name }}" {{ 'selected' if acct.name == val }}>{{ acct.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td><button class="remove-btn" onclick="this.closest('tr').remove()">×</button></td>
+        </tr>
+        {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+    <button class="btn btn-outline" style="margin-top:8px;" onclick="addMappingRow()">+ Add Mapping</button>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveConfig(this)">Save</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- WEBHOOK                                                                 -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="section" id="sec-webhook">
+    <div class="section-title">Webhook</div>
+    <div class="section-desc">Send bank alert emails to this endpoint from external tools (n8n, Mailrise, scripts).</div>
+
+    <div class="field">
+      <label>Ingest URL</label>
+      <div class="webhook-url">
+        <code id="webhook-url">POST {{ config.app_url or 'http://localhost:5000' }}/api/drafts/ingest</code>
+        <button class="btn btn-outline" style="padding:4px 10px; font-size:0.75rem;" onclick="copyWebhook()">Copy</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>API Key</label>
+      <div class="webhook-url">
+        <code id="api-key-display">{{ config.api_key or 'Not generated' }}</code>
+        <button class="btn btn-outline" style="padding:4px 10px; font-size:0.75rem;" onclick="regenerateKey()">Regenerate</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>App URL</label>
+      <input type="url" id="cfg-app-url" value="{{ config.app_url or 'http://localhost:5000' }}" placeholder="http://localhost:5000">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveConfig(this)">Save</button>
+    </div>
+
+    <!-- Test Webhook (full pipeline test) -->
+    <div style="margin-top:16px; border-top:1px solid var(--border); padding-top:16px;">
+      <div class="field">
+        <label>Test Full Pipeline — paste a sample bank email</label>
+        <textarea id="test-webhook-input" style="min-height:80px;" placeholder="Paste a bank email here to test the full pipeline: API key → HTML parsing → LLM → draft creation..."></textarea>
+      </div>
+      <button class="btn btn-success" onclick="testWebhook(this)">Test Webhook Pipeline</button>
+      <div class="test-result" id="webhook-test-result"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- CUSTOM PROMPT (Advanced)                                                -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="section" id="sec-prompt">
+    <div class="section-title">Custom Parsing Prompt</div>
+    <div class="section-desc">Customize the system prompt sent to the LLM for parsing bank emails.</div>
+
+    <div class="field">
+      <label>System Prompt <span style="font-size:0.7rem; color:var(--muted); text-transform:none;">(leave blank for default)</span></label>
+      <textarea id="cfg-prompt" placeholder="Leave empty to use the default prompt with your account mapping...">{{ config.system_prompt or '' }}</textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveConfig(this)">Save</button>
+      <button class="btn btn-outline" onclick="document.getElementById('cfg-prompt').value=''; showToast('Reset to default');">Reset to Default</button>
+    </div>
+
+    <!-- Prompt Setup Guide -->
+    <div class="collapsible-adv" id="prompt-guide">
+      <div class="collapsible-adv-header" onclick="this.parentElement.classList.toggle('open')">
+        <span class="adv-arrow">&#9654;</span> Prompt Setup Guide — create a prompt for your bank
+      </div>
+      <div class="collapsible-adv-body">
+        <div class="guide-box">
+          <p><strong>How to create a parsing prompt for your bank:</strong></p>
+          <ol>
+            <li>Copy 3-4 different transaction alert emails from your bank (include: debit, credit, UPI, card transactions)</li>
+            <li>Open any capable LLM (ChatGPT, Claude, Gemini, etc.)</li>
+            <li>Paste this prompt along with your sample emails:
+              <div class="meta-prompt" id="meta-prompt-text">I have a self-hosted expense tracker that parses bank transaction emails using an LLM. I need you to create a system prompt that extracts transaction details from my bank's email alerts.
+
+Here are sample emails from my bank:
+[paste your emails here]
+
+The output must be a JSON object with exactly these fields:
+- amount (number, always positive)
+- merchant (string, clean merchant name)
+- date (string in YYYY-MM-DD format)
+- account (string, must match one of my account names listed below)
+- category (string, best guess from: Groceries, Dining, Transport, Utilities, Shopping, Health, Entertainment, Education, Miscellaneous)
+- type (string, either "Expense" or "Income")
+
+My accounts are:
+[list your account names here]
+
+Create a system prompt with explicit rules for:
+- Parsing my bank's specific date formats
+- Extracting merchant names (removing bank-specific prefixes)
+- Mapping account identifiers to my account names
+- Handling the current year correctly
+
+The prompt should instruct the LLM to return ONLY a JSON object, no explanation or markdown.</div>
+              <button class="btn btn-outline" style="font-size:0.75rem; padding:4px 10px;" onclick="navigator.clipboard.writeText(document.getElementById('meta-prompt-text').textContent); showToast('Copied!');">Copy Meta-Prompt</button>
+            </li>
+            <li>Copy the generated system prompt into the text area above</li>
+            <li>Use "Test Parse" below to verify it works</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- Test Parse -->
+    <div style="margin-top:16px; border-top:1px solid var(--border); padding-top:16px;">
+      <div class="field">
+        <label>Test Parse — paste a sample email</label>
+        <textarea id="test-parse-input" style="min-height:80px;" placeholder="Paste a bank email here to test parsing..."></textarea>
+      </div>
+      <button class="btn btn-success" onclick="testParse(this)">Test Parse</button>
+      <div class="test-result" id="parse-test-result"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- INVESTMENT PLAN                                                         -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="section" id="sec-plan">
+    <div class="section-title">Investment Plan</div>
+    <div class="section-desc">Define your monthly allocation plan across buckets. Tag Income or Transfer transactions with a bucket on the Manage page to track progress on the <a href="/plan" style="color:var(--accent);">Plan page</a>. Read-only tracking — no auto-debit, no penalties for skipped months.</div>
+
+    <div class="inline-row">
+      <div class="field">
+        <label>Plan Start Date
+          <span class="help-icon" tabindex="0" role="button" aria-label="Help" data-help="Tracking begins from this date. The month it falls in still counts as a full 'plan month' even if it starts mid-month — set it to the 1st of a month for the cleanest tracking.">?</span>
+        </label>
+        <input type="date" id="plan-start-date" value="{{ plan_config.plan_start_date }}">
+      </div>
+      <div class="field">
+        <label>Monthly Base</label>
+        <input type="number" id="plan-monthly-base" value="{{ plan_config.monthly_base }}" step="0.01">
+      </div>
+      <div class="field">
+        <label>Phase 1 Target Total
+          <span class="help-icon" tabindex="0" role="button" aria-label="Help" data-help="Optional one-time target (e.g. an emergency fund) funded first, before the steady-state bucket ratios kick in. Leave 0 to skip straight to the regular monthly split.">?</span>
+        </label>
+        <input type="number" id="plan-phase1-total" value="{{ plan_config.phase1_target_total }}" step="0.01">
+      </div>
+    </div>
+
+    <div class="inline-row">
+      <div class="field">
+        <label>Base Monthly Income</label>
+        <input type="number" id="plan-base-income" value="{{ plan_config.base_income }}" step="0.01">
+      </div>
+      <div class="field">
+        <label>Base Monthly Expense</label>
+        <input type="number" id="plan-base-expense" value="{{ plan_config.base_expense }}" step="0.01">
+      </div>
+    </div>
+
+    <div class="inline-row">
+      <div class="field">
+        <label>Income Growth % / Year</label>
+        <input type="number" id="plan-income-growth" value="{{ plan_config.income_growth_pct }}" step="0.1">
+      </div>
+      <div class="field">
+        <label>Expense Growth % / Year</label>
+        <input type="number" id="plan-expense-growth" value="{{ plan_config.expense_growth_pct }}" step="0.1">
+      </div>
+      <div class="field">
+        <label>Extra Surplus Routing
+          <span class="help-icon" tabindex="0" role="button" aria-label="Help" data-help="If your income grows faster than expenses year over year, the extra beyond Monthly Base gets routed either proportionally across all buckets, or entirely into the buffer bucket.">?</span>
+        </label>
+        <select id="plan-extra-routing">
+          <option value="same_ratio" {{ 'selected' if plan_config.extra_routing == 'same_ratio' }}>Same ratio as buckets</option>
+          <option value="savings_only" {{ 'selected' if plan_config.extra_routing == 'savings_only' }}>All to buffer bucket</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">No-Penalty Mode</div>
+        <div class="toggle-desc">Suppress "behind schedule" styling on the Plan page — informational only</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="plan-no-penalty" {{ 'checked' if plan_config.no_penalty_mode }}>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label>Main Goal — Target Net Worth
+        <span class="help-icon" tabindex="0" role="button" aria-label="Help" data-help="A single long-term net worth target (e.g. ₹1,00,00,000). The Plan page shows progress toward it plus two ETAs: one based on your actual savings pace, one based on this plan's targets. Leave blank to hide it.">?</span>
+      </label>
+      <input type="number" id="plan-main-goal" value="{{ plan_config.main_goal_amount or '' }}" step="0.01" placeholder="e.g. 10000000 for ₹1 Cr">
+    </div>
+
+    <div class="section-desc" style="margin-top:16px;">Buckets
+      <span class="help-icon" tabindex="0" role="button" aria-label="Help" data-help="Each row is one allocation bucket. Linking a bucket to an Account makes the Plan Bucket dropdown on Manage auto-select it when you tag a transaction to that account.">?</span>
+    </div>
+    <table class="mapping-table" id="plan-bucket-table">
+      <thead>
+        <tr>
+          <th>ID</th><th>Label</th><th>Monthly Amount</th><th>Account</th><th>Color</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="plan-bucket-body">
+        {% for b in plan_config.buckets %}
+        <tr>
+          <td><input type="text" class="pb-id" value="{{ b.id }}" placeholder="equity"></td>
+          <td><input type="text" class="pb-label" value="{{ b.label }}" placeholder="Core equity"></td>
+          <td><input type="number" class="pb-amount" value="{{ b.amount }}" step="0.01"></td>
+          <td>
+            <select class="pb-account">
+              <option value="">— None (e.g. FD top-up) —</option>
+              {% for acct in accounts %}
+              <option value="{{ acct.id }}" {{ 'selected' if acct.id == b.account_id }}>{{ acct.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td>
+            <select class="pb-color">
+              {% for c in ['blue','amber','green','pink','gray'] %}
+              <option value="{{ c }}" {{ 'selected' if c == b.color }}>{{ c }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td><button class="remove-btn" onclick="this.closest('tr').remove()">×</button></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div style="font-size:0.75rem; color:var(--muted); margin-top:8px;">Pick "— None —" for a bucket that isn't tied to one account — e.g. an FD top-up bucket, since each FD you book becomes its own new account rather than topping up an existing one. It's still tracked automatically by matching Fixed Deposit accounts booked after your Plan Start Date.</div>
+    <button class="btn btn-outline" style="margin-top:8px;" onclick="addPlanBucketRow()">+ Add Bucket</button>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="savePlanConfig(this)">Save Plan</button>
+    </div>
+  </div>
+
+  <!-- Pipeline History -->
+  <!-- Was a bare .card/<h2>/.btn-small — none of those three classes are defined
+       anywhere in this file's stylesheet, so this section silently rendered as
+       an unstyled div with browser-default buttons (no background/border/radius),
+       looking broken next to the other 6 sections. Switched to the real .section
+       / .section-title / .btn-outline tokens the rest of the page already uses. -->
+  <div class="section" id="sec-history" style="margin-top:24px;">
+    <div class="section-title">Pipeline History</div>
+    <p style="color:var(--muted); font-size:0.85rem; margin-bottom:12px;">
+      Log of all email parsing attempts — webhook and paste. Shows success, failure, skipped, and duplicates.
+    </p>
+    <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+      <button class="btn btn-outline" onclick="loadPipelineHistory('')" style="font-size:0.8rem;">All</button>
+      <button class="btn btn-outline" onclick="loadPipelineHistory('success')" style="font-size:0.8rem;">Success</button>
+      <button class="btn btn-outline" onclick="loadPipelineHistory('failed')" style="font-size:0.8rem;">Failed</button>
+      <button class="btn btn-outline" onclick="loadPipelineHistory('skipped')" style="font-size:0.8rem;">Skipped</button>
+      <button class="btn btn-outline" onclick="loadPipelineHistory('duplicate')" style="font-size:0.8rem;">Duplicate</button>
+      <button class="btn btn-danger" onclick="clearPipelineHistory()" style="font-size:0.8rem; margin-left:auto;">Clear History</button>
+    </div>
+    <div id="pipeline-history" style="max-height:400px; overflow-y:auto;">
+      <p style="color:var(--muted); text-align:center;">Loading...</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+  const accountNames = {{ accounts|tojson }};
+  function esc(s) { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+
+  function getAccountMapping() {
+    const mapping = {};
+    document.querySelectorAll('#mapping-body tr').forEach(row => {
+      const key = row.querySelector('.mapping-key')?.value?.trim();
+      const val = row.querySelector('.mapping-val')?.value;
+      if (key && val) mapping[key] = val;
+    });
+    return mapping;
+  }
+
+  function addMappingRow() {
+    const tbody = document.getElementById('mapping-body');
+    const acctOptions = accountNames.map(a => `<option value="${esc(a.name)}">${esc(a.name)}</option>`).join('');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" class="mapping-key" placeholder='e.g., "account 1234"'></td>
+      <td><select class="mapping-val">${acctOptions}</select></td>
+      <td><button class="remove-btn" onclick="this.closest('tr').remove()">×</button></td>`;
+    tbody.appendChild(tr);
+  }
+
+  async function saveConfig(btn) {
+    const activePreset = document.querySelector('.preset-chip.active')?.dataset?.preset || 'custom';
+    const body = {
+      enabled: document.getElementById('cfg-enabled').checked,
+      llm_url: document.getElementById('cfg-llm-url').value.trim(),
+      system_prompt: document.getElementById('cfg-prompt').value.trim(),
+      account_mapping: getAccountMapping(),
+      app_url: document.getElementById('cfg-app-url').value.trim(),
+    };
+
+    const orig = btn?.textContent;
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+    try {
+      const resp = await fetch('/api/settings/email', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify(body)
+      });
+      const data = await resp.json();
+      if (data.success) showToast('Settings saved');
+      else showToast(data.error || 'Failed to save', 'error');
+    } catch (e) {
+      showToast('Network error', 'error');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = orig; }
+    }
+  }
+
+  async function testLLM(btn) {
+    const url = document.getElementById('cfg-llm-url').value.trim();
+    const el = document.getElementById('llm-test-result');
+    if (!url) { el.className = 'test-result error'; el.textContent = 'Enter a URL first'; return; }
+    el.className = 'test-result'; el.style.display = 'block'; el.textContent = 'Testing...';
+    const orig = btn?.textContent;
+    if (btn) { btn.disabled = true; btn.textContent = 'Testing...'; }
+    try {
+      const resp = await fetch('/api/settings/email/test-llm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ llm_url: url })
+      });
+      const data = await resp.json();
+      el.className = data.success ? 'test-result success' : 'test-result error';
+      el.textContent = data.message || data.error;
+    } catch (e) {
+      el.className = 'test-result error';
+      el.textContent = 'Failed: ' + e.message;
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = orig; }
+    }
+  }
+
+  async function testWebhook(btn) {
+    const html = document.getElementById('test-webhook-input').value.trim();
+    const el = document.getElementById('webhook-test-result');
+    if (!html) { el.className = 'test-result error'; el.textContent = 'Paste a bank email first'; return; }
+    el.className = 'test-result'; el.style.display = 'block'; el.textContent = 'Testing full pipeline...';
+    const orig = btn?.textContent;
+    if (btn) { btn.disabled = true; btn.textContent = 'Testing...'; }
+
+    try {
+      const resp = await fetch('/api/settings/email/test-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ html })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        el.className = 'test-result success';
+        el.innerHTML = '<strong>' + esc(data.message) + '</strong><br><pre style="margin-top:8px;white-space:pre-wrap;">' + esc(JSON.stringify(data.parsed, null, 2)) + '</pre><br><span style="font-size:0.8rem;color:var(--muted);">Draft #' + esc(String(data.draft_id)) + ' created. Check the Manage page to review it.</span>';
+      } else {
+        el.className = 'test-result error';
+        el.textContent = data.error;
+      }
+    } catch (e) {
+      el.className = 'test-result error';
+      el.textContent = 'Failed: ' + e.message;
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = orig; }
+    }
+  }
+
+  async function testParse(btn) {
+    const text = document.getElementById('test-parse-input').value.trim();
+    const el = document.getElementById('parse-test-result');
+    if (!text) { el.className = 'test-result error'; el.textContent = 'Paste an email first'; return; }
+    el.className = 'test-result'; el.style.display = 'block'; el.textContent = 'Parsing...';
+    const orig = btn?.textContent;
+    if (btn) { btn.disabled = true; btn.textContent = 'Parsing...'; }
+
+    try {
+      const resp = await fetch('/api/settings/email/test-parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({
+          text,
+          llm_url: document.getElementById('cfg-llm-url').value.trim(),
+          system_prompt: document.getElementById('cfg-prompt').value.trim(),
+        })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        el.className = 'test-result success';
+        el.innerHTML = '<strong>Parsed successfully:</strong><br><pre style="margin-top:8px;white-space:pre-wrap;">' + JSON.stringify(data.parsed, null, 2) + '</pre>';
+      } else {
+        el.className = 'test-result error';
+        el.textContent = data.error;
+      }
+    } catch (e) {
+      el.className = 'test-result error';
+      el.textContent = 'Failed: ' + e.message;
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = orig; }
+    }
+  }
+
+  async function regenerateKey() {
+    if (!confirm('Regenerate the API key? The old key stops working immediately — any n8n workflow or webhook script still using it will fail until you update it there too.')) return;
+    const resp = await fetch('/api/settings/email/regenerate-key', {
+      method: 'POST', headers: { 'X-CSRFToken': csrfToken }
+    });
+    const data = await resp.json();
+    if (data.success) {
+      document.getElementById('api-key-display').textContent = data.api_key;
+      showToast('API key regenerated — update it in n8n/webhook configs');
+    }
+  }
+
+  function copyWebhook() {
+    const text = document.getElementById('webhook-url').textContent;
+    navigator.clipboard.writeText(text);
+    showToast('Copied!');
+  }
+
+  // ── Pipeline History ──
+  async function loadPipelineHistory(statusFilter) {
+    const container = document.getElementById('pipeline-history');
+    container.innerHTML = '<p style="color:var(--muted); text-align:center;">Loading...</p>';
+    const url = statusFilter ? `/api/pipeline/history?status=${statusFilter}&limit=100` : '/api/pipeline/history?limit=100';
+    try {
+      const resp = await fetch(url);
+      const entries = await resp.json();
+      if (!entries.length) {
+        container.innerHTML = '<p style="color:var(--muted); text-align:center;">No pipeline activity yet.</p>';
+        return;
+      }
+      const statusBadge = (s) => {
+        const safe = esc(s);
+        const colors = { success: 'var(--success)', failed: 'var(--danger)', skipped: 'var(--muted)', duplicate: 'var(--cc)', retry: 'var(--accent)' };
+        return `<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:600;background:${colors[s]||'var(--muted)'};color:#fff;">${safe.toUpperCase()}</span>`;
+      };
+      let html = '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">';
+      html += '<thead><tr style="border-bottom:1px solid var(--border);">';
+      html += '<th style="text-align:left;padding:6px;">Time</th>';
+      html += '<th style="text-align:left;padding:6px;">Status</th>';
+      html += '<th style="text-align:left;padding:6px;">Source</th>';
+      html += '<th style="text-align:left;padding:6px;">Details</th>';
+      html += '<th style="text-align:left;padding:6px;">Action</th>';
+      html += '</tr></thead><tbody>';
+      entries.forEach(e => {
+        const time = e.timestamp ? new Date(e.timestamp).toLocaleString() : '—';
+        const details = e.parsed
+          ? `${esc(e.parsed.merchant || '—')} — ₹${(e.parsed.amount||0).toLocaleString('en-IN')} (${esc(e.parsed.date||'—')})`
+          : esc(e.error || e.email_preview || '—');
+        const retryBtn = e.status === 'failed' && e.email_preview
+          ? `<button class="btn btn-outline" onclick="retryPipeline(${parseInt(e.id)||0})" style="font-size:0.75rem;padding:2px 8px;">Retry</button>`
+          : (e.draft_id ? `Draft #${parseInt(e.draft_id)||0}` : '—');
+        html += `<tr style="border-bottom:1px solid var(--border);">`;
+        html += `<td style="padding:6px;white-space:nowrap;">${esc(time)}</td>`;
+        html += `<td style="padding:6px;">${statusBadge(e.status)}</td>`;
+        html += `<td style="padding:6px;">${esc(e.source || '—')}</td>`;
+        html += `<td style="padding:6px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(details)}">${details}</td>`;
+        html += `<td style="padding:6px;">${retryBtn}</td>`;
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    } catch (err) {
+      container.innerHTML = `<p style="color:var(--danger);">Failed to load: ${esc(err.message)}</p>`;
+    }
+  }
+
+  async function retryPipeline(logId) {
+    try {
+      const resp = await fetch(`/api/pipeline/retry/${logId}`, {
+        method: 'POST',
+        headers: {'X-CSRFToken': csrfToken}
+      });
+      const data = await resp.json();
+      if (data.success) {
+        showToast('Retry successful — draft created');
+        loadPipelineHistory('');
+      } else {
+        showToast(data.error || 'Retry failed');
+        loadPipelineHistory('');
+      }
+    } catch (err) {
+      showToast('Retry failed: ' + err.message);
+    }
+  }
+
+  async function clearPipelineHistory() {
+    if (!confirm('Clear all pipeline history?')) return;
+    try {
+      const resp = await fetch('/api/pipeline/clear', {
+        method: 'POST',
+        headers: {'X-CSRFToken': csrfToken}
+      });
+      const data = await resp.json();
+      if (data.success) {
+        showToast('History cleared');
+        loadPipelineHistory('');
+      }
+    } catch (err) {
+      showToast('Failed to clear: ' + err.message);
+    }
+  }
+
+  // ── Investment Plan ──
+  function addPlanBucketRow() {
+    const tbody = document.getElementById('plan-bucket-body');
+    const acctOptions = accountNames.map(a => `<option value="${a.id}">${esc(a.name)}</option>`).join('');
+    const colorOptions = ['blue', 'amber', 'green', 'pink', 'gray'].map(c => `<option value="${c}">${c}</option>`).join('');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" class="pb-id" placeholder="bucket_id"></td>
+      <td><input type="text" class="pb-label" placeholder="Label"></td>
+      <td><input type="number" class="pb-amount" value="0" step="0.01"></td>
+      <td><select class="pb-account"><option value="">— None (e.g. FD top-up) —</option>${acctOptions}</select></td>
+      <td><select class="pb-color">${colorOptions}</select></td>
+      <td><button class="remove-btn" onclick="this.closest('tr').remove()">×</button></td>`;
+    tbody.appendChild(tr);
+  }
+
+  async function savePlanConfig(btn) {
+    const buckets = Array.from(document.querySelectorAll('#plan-bucket-body tr')).map(row => ({
+      id: row.querySelector('.pb-id').value.trim(),
+      label: row.querySelector('.pb-label').value.trim(),
+      amount: parseFloat(row.querySelector('.pb-amount').value) || 0,
+      account_id: row.querySelector('.pb-account').value || null,
+      color: row.querySelector('.pb-color').value,
+    })).filter(b => b.id);
+
+    const body = {
+      plan_start_date: document.getElementById('plan-start-date').value,
+      monthly_base: parseFloat(document.getElementById('plan-monthly-base').value) || 0,
+      phase1_target_total: parseFloat(document.getElementById('plan-phase1-total').value) || 0,
+      base_income: parseFloat(document.getElementById('plan-base-income').value) || 0,
+      base_expense: parseFloat(document.getElementById('plan-base-expense').value) || 0,
+      income_growth_pct: parseFloat(document.getElementById('plan-income-growth').value) || 0,
+      expense_growth_pct: parseFloat(document.getElementById('plan-expense-growth').value) || 0,
+      extra_routing: document.getElementById('plan-extra-routing').value,
+      no_penalty_mode: document.getElementById('plan-no-penalty').checked,
+      main_goal_amount: document.getElementById('plan-main-goal').value ? parseFloat(document.getElementById('plan-main-goal').value) : null,
+      buckets,
+    };
+
+    const orig = btn?.textContent;
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+    try {
+      const resp = await fetch('/api/settings/plan', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify(body)
+      });
+      const data = await resp.json();
+      if (data.success) showToast('Plan saved');
+      else showToast(data.error || 'Failed to save', 'error');
+    } catch (e) {
+      showToast('Network error', 'error');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = orig; }
+    }
+  }
+
+  // Load history on page load
+  loadPipelineHistory('');
+</script>
+<script src="/static/theme.js"></script>
+<script>
+  initThemePicker();
+</script>
+</body>
+</html>

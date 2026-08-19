@@ -1,0 +1,270 @@
+/* ── Base tokens (shared across all themes) ── */
+:root {
+  --radius: 6px;
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+/* ── Semantic design tokens ──
+   Alias layer over the existing per-theme raw vars (--bg, --text, --accent, etc.)
+   so future components reference a role ("fgMuted", "bgInset") instead of a raw
+   name, and stay correct across all 7 palettes automatically. Each alias just
+   points at whatever the existing var already resolves to for the active theme —
+   zero visual change on introduction. Existing raw var names are untouched;
+   nothing below renames or replaces them. New components should prefer these;
+   existing CSS does not need to be migrated to use them. */
+:root {
+  /* Foreground (text/icon) */
+  --fg-default: var(--text);
+  --fg-muted: var(--muted);
+  --fg-subtle: var(--muted);
+  --fg-danger: var(--danger);
+  --fg-success: var(--success);
+
+  /* Background / surface */
+  --bg-default: var(--bg);
+  --bg-surface: var(--surface);
+  --bg-inset: var(--surface2);
+
+  /* Border */
+  --border-default: var(--border);
+  --border-muted: var(--border);
+
+  /* Action (buttons) — existing primary buttons hardcode #fff text on
+     var(--accent) background across every template; this just names that
+     existing convention rather than changing it. */
+  --action-primary-bg: var(--accent);
+  --action-primary-fg: #ffffff;
+  --action-secondary-bg: var(--surface2);
+  --action-secondary-fg: var(--accent);
+
+  /* Input */
+  --input-default-bg: var(--surface);
+  --input-default-border: var(--border);
+  --input-default-fg: var(--text);
+}
+
+/* ── Type scale ──
+   Named utility classes for this app's own two-font identity (Syne for
+   headings, DM Mono for body/label) — not a copy of any external app's font
+   choices, just the same "named scale instead of ad-hoc font-size per
+   component" discipline. Sizes match what templates already use in practice
+   (.page-title is 1.6rem, .stat-value is 1.2rem, .chart-title is 0.95rem,
+   .stat-label is 0.6rem, etc.) so adopting a class changes nothing visually
+   where it lines up with an existing component — these are additive only;
+   no existing font-size declaration in any template is changed by adding
+   this block. Use on new components going forward; existing CSS does not
+   need to be migrated. */
+.text-heading-xl { font-family: var(--font-display); font-weight: 700; font-size: 2rem; line-height: 1.15; }
+.text-heading-lg { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; line-height: 1.2; }
+.text-heading-md { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; line-height: 1.25; }
+.text-heading-sm { font-family: var(--font-display); font-weight: 600; font-size: 0.95rem; line-height: 1.3; }
+.text-heading-xs { font-family: var(--font-display); font-weight: 600; font-size: 0.85rem; line-height: 1.3; }
+
+.text-body-lg { font-family: var(--font-mono); font-weight: 400; font-size: 0.9rem; line-height: 1.5; }
+.text-body-md { font-family: var(--font-mono); font-weight: 400; font-size: 0.8rem; line-height: 1.5; }
+.text-body-sm { font-family: var(--font-mono); font-weight: 400; font-size: 0.75rem; line-height: 1.45; }
+
+.text-label-md { font-family: var(--font-mono); font-weight: 500; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.3; }
+.text-label-sm { font-family: var(--font-mono); font-weight: 500; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.8px; line-height: 1.3; }
+.text-label-xs { font-family: var(--font-mono); font-weight: 500; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.8px; line-height: 1.3; }
+
+/* ── Theme picker dropdown ── */
+.theme-picker {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px;
+  min-width: 160px;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+.theme-picker.open { display: block; }
+
+.theme-picker-title {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  padding: 4px 8px 6px;
+}
+.theme-picker-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.theme-picker-mode {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  padding: 5px 8px;
+  cursor: pointer;
+  transition: all 0.1s;
+  text-align: center;
+}
+.theme-picker-mode:hover { border-color: var(--accent); color: var(--text); }
+.theme-picker-mode.active { border-color: var(--accent); color: var(--accent); background: var(--surface2); }
+
+/* ── Mobile responsive fixes ── */
+@media (max-width: 600px) {
+  /* Nav: logo on its own row, tabs centered below */
+  nav {
+    flex-wrap: wrap !important;
+    gap: 10px;
+    padding: 12px 16px !important;
+  }
+  nav .nav-logo {
+    width: 100%;
+    text-align: center;
+  }
+  nav .nav-links {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 2px;
+  }
+  nav .nav-links a {
+    font-size: 0.68rem !important;
+    padding: 5px 8px !important;
+  }
+
+  /* Ensure content is centered and not overflowing */
+  .container {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Page headers stack on mobile */
+  .page-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  /* iOS Safari auto-zooms the page on focusing any input/select/textarea
+     rendered below 16px — every form in the app sets its inputs at 14-15px
+     for visual density, which is fine on desktop but triggers an unwanted
+     zoom-in on every tap on iPhone. Force 16px on mobile only; desktop
+     sizing (set per-template) is untouched. */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ── Theme toggle button (shared) ── */
+.theme-toggle {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 0.85rem;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  padding: 0;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Shared icon action button (edit/delete/track — manage.html & accounts.html) ──
+   Was duplicated per-template at 28x28px, below the ~40px minimum comfortable
+   touch target (Fitts's Law) for a row of adjacent icon buttons on a
+   mobile-first app. Defined once here so both templates stay in sync. */
+.action-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  padding: 0;
+  flex-shrink: 0;
+}
+.action-btn:hover { border-color: var(--accent); color: var(--accent); }
+.action-btn.del:hover { border-color: var(--danger); color: var(--danger); }
+@media (max-width: 600px) {
+  .action-btn { width: 38px; height: 38px; }
+  .txn-actions, .acct-actions { gap: 8px; }
+}
+
+/* ── Shared focus-visible ring for custom controls ──
+   Bespoke buttons/pills style :hover but not :focus, so keyboard users tabbing
+   through got either the browser default (inconsistent with the custom shape)
+   or nothing. Radio/checkbox-driven toggles (Type pickers) hide the input
+   itself (opacity:0), so tabbing through them showed no focus indicator at all. */
+.action-btn:focus-visible,
+.filter-action-btn:focus-visible,
+.filter-pill:focus-visible,
+.filter-select:focus-visible,
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+input[type="radio"]:focus-visible + label,
+input[type="checkbox"]:focus-visible + label {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Standalone toggle for pages without a nav bar (login, setup) */
+.theme-toggle-fixed {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 50;
+}
+.theme-picker-fixed {
+  position: fixed !important;
+  top: 56px;
+  right: 16px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   THEME DEFINITIONS
+   Each theme has a dark and light variant. The attribute format is:
+     data-theme="<name>-dark" / data-theme="<name>-light"
+
+   The --bucket-* categorical set (chart colors + plan buckets) uses the SAME
+   6 hex values in every dark AND light block on purpose — validated via the
+   dataviz skill's validate_palette.js against every theme's own surface color:
+   passes the OKLCH lightness band, chroma floor, and CVD-separation checks in
+   both modes. The dark blocks previously used brighter Tailwind-400-style
+   tints (e.g. #60a5fa) that read fine individually but failed the dark-mode
+   lightness band as a set. Don't "brighten for dark mode" here — these mid-tone
+   values are already correct for both.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── GitHub ── (default and only theme; Fold's decompiled palette was tried
+   here and reverted — didn't read well in practice, back to the original
+   GitHub-inspired colors.) */
+[data-theme="github-dark"] {
+  --bg: #0d1117; --surface: #161b22; --surface2: #21262d; --border: #30363d;
+  --accent: #58a6ff; --accent-dim: #388bfd; --text: #c9d1d9; --muted: #8b949e;
+  --danger: #f85149; --success: #3fb950; --savings: #58a6ff; --cc: #d29922;
+  --bucket-blue: #2563eb; --bucket-amber: #b45309; --bucket-green: #16a34a; --bucket-pink: #db2777; --bucket-gray: #9ca3af; --bucket-teal: #0d9488; --bucket-violet: #7c3aed;
+}
+[data-theme="github-light"] {
+  --bg: #ffffff; --surface: #f6f8fa; --surface2: #eaeef2; --border: #d0d7de;
+  --accent: #0969da; --accent-dim: #0550ae; --text: #1f2328; --muted: #656d76;
+  --danger: #cf222e; --success: #1a7f37; --savings: #0969da; --cc: #9a6700;
+  --bucket-blue: #2563eb; --bucket-amber: #b45309; --bucket-green: #16a34a; --bucket-pink: #db2777; --bucket-gray: #6b7280; --bucket-teal: #0d9488; --bucket-violet: #7c3aed;
+}
+
